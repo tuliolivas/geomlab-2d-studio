@@ -17,10 +17,10 @@ O sistema segue uma arquitetura de **Composição de Tela** típica do LibGDX, s
 
 ## 2. Justificativa do Polimorfismo (`Volume`)
 
-A superclasse abstrata `Volume` permite que `Cena` mantenha uma única coleção `List<Volume>` contendo `AABB`, `Circulo` e `OBB` simultaneamente, sem precisar de `if/else instanceof` espalhado pelo código. O método `render(SpriteBatch)` é despachado dinamicamente (*dynamic dispatch*): cada subclasse desenha sua própria geometria (retângulo, círculo ou retângulo rotacionado), mas a `Cena` chama todos de forma uniforme:
+A superclasse abstrata `Volume` permite que `Cena` mantenha uma única coleção `List<Volume>` contendo `AABB`, `Circulo` e `OBB` simultaneamente, sem precisar de `if/else instanceof` espalhado pelo código. O método `render(ShapeRenderer)` é despachado dinamicamente (*dynamic dispatch*): cada subclasse desenha sua própria geometria (retângulo, círculo ou retângulo rotacionado), mas a `Cena` chama todos de forma uniforme:
 
 ```java
-for (Volume v : volumes) v.render(batch);
+for (Volume v : volumes) v.render(shapeRenderer);
 ```
 
 Isso aplica o **Princípio Aberto/Fechado**: novas formas (ex: `Poligono`) podem ser adicionadas sem alterar `Cena`.
@@ -44,7 +44,7 @@ classDiagram
         -List~Volume~ volumes
         -PainelInspetor painel
         +void adicionarVolume(Volume v)
-        +void render(SpriteBatch batch)
+        +void render(ShapeRenderer)
         #void verificarColisoes()
     }
 
@@ -73,13 +73,13 @@ classDiagram
     class AABB {
         -float largura
         -float altura
-        +void render(SpriteBatch batch)
+        +void render(shapeRenderer)
         +boolean colidirCom(Colidivel outro)
     }
 
     class Circulo {
         -float raio
-        +void render(SpriteBatch batch)
+        +void render(shapeRenderer)
         +boolean colidirCom(Colidivel outro)
     }
 
@@ -87,7 +87,7 @@ classDiagram
         -float largura
         -float altura
         -float anguloRotacao
-        +void render(SpriteBatch batch)
+        +void render(shapeRenderer)
         +boolean colidirCom(Colidivel outro)
     }
 
@@ -110,15 +110,17 @@ classDiagram
 
 ## 4. Chamadas Polimórficas no Ciclo de Vida do `render()`
 
-Dentro de `Cena.render(SpriteBatch batch)`:
+Dentro de `Cena.render(shapeRenderer)`:
 
 ```java
-public void render(SpriteBatch batch) {
-    for (Volume v : volumes) {
-        v.render(batch);          // (1) Despacho dinâmico: AABB, Circulo ou OBB desenham-se de forma diferente
+private void desenharVolumes() {
+        shapeRenderer.setProjectionMatrix(stage.getCamera().combined);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        for (Volume v : volumes) {
+            v.render(shapeRenderer); // chamada polimórfica: AABB, Circulo ou OBB
+        }
+        shapeRenderer.end();
     }
-    verificarColisoes();
-}
 
 protected void verificarColisoes() {
     for (int i = 0; i < volumes.size(); i++) {
@@ -150,7 +152,7 @@ Cada chamada `v.render()` e `a.colidirCom(b)` é resolvida **em tempo de execuç
 | 3d | Composição | `GeomLab2DStudioApp *-- Cena` | Ciclo de vida da `Cena` é totalmente dependente de `GeomLab2DStudioApp` |
 | 4a | Interface (abstração 1) | `Colidivel` | `<<interface>>` com `colidirCom()` e `getCentro()` |
 | 4b | Classe Abstrata (abstração 2) | `Volume` | `<<abstract>>` com métodos marcados `*` |
-| 5 | 3 chamadas polimórficas no render() | `Cena` (métodos `render` e `verificarColisoes`) | `v.render(batch)`, `a.colidirCom(b)` (2x) |
+| 5 | 3 chamadas polimórficas no render() | `Cena` (métodos `render` e `verificarColisoes`) | `v.render(shapeRenderer)`, `a.colidirCom(b)` (2x) |
 | 6 | Modificadores `+` / `#` / `-` | `Volume` (`#posicao`), `GeomLab2DStudioApp` (`#dispose`), `Volume` (`+render`), `AABB` (`-largura`) | Presentes em todas as classes do domínio |
 | 7 | 1 atributo estático + 1 método estático | `GeometriaUtils` | `-static float EPSILON` / `+static boolean intersectaAABBvsCirculo(...)` |
 
