@@ -13,7 +13,7 @@
 
 **GeomLab 2D Studio** é um laboratório visual interativo onde o usuário configura nuvens de pontos e formas geométricas envoltórias (*bounding volumes*) através de um painel inspetor, observando em tempo real seu comportamento e colisão em um canvas cartesiano.
 
-O projeto foi concebido como exercício prático de **Orientação a Objetos**, aplicando seus quatro pilares (Abstração, Encapsulamento, Herança e Polimorfismo), além das quatro relações estruturais entre classes (Associação, Agregação, Composição e Dependência).
+O projeto foi concebido como exercício prático de **Orientação a Objetos**, aplicando de forma genuína (não decorativa) os quatro pilares — Abstração, Encapsulamento, Herança e Polimorfismo — além das quatro relações estruturais entre classes (Associação, Agregação, Composição e Dependência).
 
 📐 A especificação completa da arquitetura e o diagrama de classes estão em [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
@@ -57,14 +57,13 @@ geomlab-2d-studio/
 │       │   └── Cena.java
 │       ├── ui/
 │       │   └── PainelInspetor.java
-│       ├── geometria/          # (a partir da Etapa 2)
-│       │   ├── Volume.java
-│       │   ├── AABB.java
-│       │   ├── Circulo.java
-│       │   ├── OBB.java
-│       │   └── Colidivel.java
-│       └── util/               # (a partir da Etapa 4)
-│           └── GeometriaUtils.java
+│       └── geometry/
+│           ├── Volume.java          # classe abstrata + estado emColisao
+│           ├── AABB.java
+│           ├── Circulo.java
+│           ├── OBB.java
+│           ├── Colidivel.java       # interface
+│           └── GeometriaUtils.java  # SAT, clamping, atributo/método estático
 ├── lwjgl3/
 │   └── src/main/java/com/geomlab/studio/lwjgl3/
 │       └── Lwjgl3Launcher.java
@@ -96,15 +95,16 @@ geomlab-2d-studio/
 
 ## 🗺️ Roadmap de Desenvolvimento
 
-O desenvolvimento é dividido em 5 etapas incrementais, cada uma testável e apresentável isoladamente:
+O desenvolvimento é dividido em 6 etapas incrementais, cada uma testável e apresentável isoladamente:
 
 | Etapa | Nome | Status |
 |---|---|---|
 | 1 | Fundação e Esqueleto Visual | ✅ Concluída |
 | 2 | Domínio Geométrico (Volume, AABB, Círculo, OBB) | ✅ Concluída |
-| 3 | Interatividade e Manipulação | ⏳ Planejada |
-| 4 | Motor de Colisão (GeometriaUtils + Colidivel) | ⏳ Planejada |
-| 5 | Polimento e Persistência | ⏳ Planejada |
+| 3 | Interatividade e Manipulação | ✅ Concluída |
+| 4 | Motor de Colisão (GeometriaUtils + Colidivel) | ✅ Concluída |
+| 5 | Polimento e Persistência | 🔜 Próxima |
+| 6 | Nuvens de Pontos e Encapsulamento Mínimo | ⏳ Planejada (depende das Etapas 3 e 4) |
 
 Detalhes de cada etapa estão documentados em [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
@@ -113,10 +113,18 @@ Detalhes de cada etapa estão documentados em [`docs/ARCHITECTURE.md`](docs/ARCH
 ## 🎯 Conceitos de POO Demonstrados
 
 - **Abstração**: classe abstrata `Volume` e interface `Colidivel`
-- **Encapsulamento**: uso correto dos modificadores `+ public`, `# protected`, `- private`
+- **Encapsulamento**: uso correto dos modificadores `+ public`, `# protected`, `- private`; estado de arraste e estado de colisão (`emColisao`) totalmente privados/protegidos
 - **Herança**: `AABB`, `Circulo` e `OBB` especializando `Volume`
-- **Polimorfismo**: despacho dinâmico de `render()` e `colidirCom()` no laço principal da `Cena`
+- **Polimorfismo**: 3 despachos dinâmicos no ciclo de `Cena` — `v.render(renderer)`, `v.renderBorda(renderer)` e `a.colidirCom(b)` — cada um resolvido em tempo de execução conforme o tipo concreto real do objeto
 - **Relações estruturais**: Composição (`App *-- Cena`), Agregação (`Cena o-- Volume`), Associação (`PainelInspetor --> Cena`) e Dependência (`Volume ..> GeometriaUtils`)
+- **Atributo e método estático**: `GeometriaUtils.EPSILON` (privado) e os 6 métodos de interseção (`intersectaCirculoVsCirculo`, `intersectaAABBvsAABB`, `intersectaAABBvsCirculo`, `intersectaOBBvsOBB`, `intersectaOBBvsAABB`, `intersectaOBBvsCirculo`)
+
+### Destaques do Motor de Colisão (Etapa 4)
+
+- **6 pares de colisão** implementados cobrindo todas as combinações entre AABB, Círculo e OBB
+- **SAT (Separating Axis Theorem)** para os pares que envolvem rotação (OBB×OBB, OBB×AABB)
+- **Clamping** para os pares com Círculo (AABB×Círculo, OBB×Círculo — este último calculado no espaço local do OBB, após desfazer a rotação)
+- **Estado de colisão por forma** (`emColisao`, booleano): suporta qualquer quantidade de colisões simultâneas (3+ formas sobrepostas), com feedback visual instantâneo (cor de alerta)
 
 ---
 
@@ -128,4 +136,4 @@ Este projeto é distribuído sob a licença MIT — veja o arquivo `LICENSE` par
 
 ## ✍️ Autor
 
-Desenvolvido por **Túlio... e Lucas...** como projeto prático de estudo em Programação Orientada a Objetos.
+Desenvolvido por **Túlio** como projeto prático de estudo em Programação Orientada a Objetos.

@@ -10,7 +10,14 @@ public abstract class Volume implements Colidivel {
     protected Color corBorda;
     protected Color corPreenchimento;
 
+    // Estado de colisão: resetado e recalculado a cada frame por Cena
+    protected boolean emColisao = false;
+
     private static final float ALPHA_PREENCHIMENTO = 0.25f;
+
+    // Cor de alerta universal, compartilhada por todas as subclasses
+    protected static final Color COR_COLISAO_BORDA = new Color(1f, 0.15f, 0.15f, 1f);
+    protected static final Color COR_COLISAO_PREENCHIMENTO = new Color(1f, 0.15f, 0.15f, 0.35f);
 
     public Volume(Vector2 posicao, Color corBase) {
         this.posicao = posicao;
@@ -18,10 +25,8 @@ public abstract class Volume implements Colidivel {
         this.corPreenchimento = new Color(corBase.r, corBase.g, corBase.b, ALPHA_PREENCHIMENTO);
     }
 
-    /** Passada 1: preenchimento translúcido. */
     public abstract void render(ShapeRenderer renderer);
 
-    /** Passada 2: contorno sólido — desenhado por cima de todos os preenchimentos. */
     public abstract void renderBorda(ShapeRenderer renderer);
 
     public abstract boolean contemPonto(Vector2 ponto);
@@ -43,13 +48,26 @@ public abstract class Volume implements Colidivel {
         return corBorda;
     }
 
-    @Override
-    public Vector2 getCentro() {
-        return posicao;
+    public boolean isEmColisao() {
+        return emColisao;
+    }
+
+    public void setEmColisao(boolean emColisao) {
+        this.emColisao = emColisao;
+    }
+
+    /** Retorna a cor de preenchimento a usar neste frame: normal ou de alerta. */
+    protected Color resolverCorPreenchimento() {
+        return emColisao ? COR_COLISAO_PREENCHIMENTO : corPreenchimento;
+    }
+
+    /** Retorna a cor de borda a usar neste frame: normal ou de alerta. */
+    protected Color resolverCorBorda() {
+        return emColisao ? COR_COLISAO_BORDA : corBorda;
     }
 
     @Override
-    public boolean colidirCom(Colidivel outro) {
-        return false; // Implementação real chega na Etapa 4
+    public Vector2 getCentro() {
+        return posicao;
     }
 }

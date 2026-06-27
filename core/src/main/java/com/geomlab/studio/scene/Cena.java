@@ -82,6 +82,30 @@ public class Cena {
         stage.act(delta);
         stage.draw();
         desenharVolumes();
+        verificarColisoes();
+    }
+    
+    /**
+     * Verifica colisão entre todos os pares de volumes da cena.
+     * Cada volume tem seu estado emColisao resetado e recalculado
+     * a cada frame, suportando qualquer quantidade de colisões
+     * simultâneas (ex: 3+ formas sobrepostas ao mesmo tempo).
+     */
+    protected void verificarColisoes() {
+        for (Volume v : volumes) {
+            v.setEmColisao(false);
+        }
+
+        for (int i = 0; i < volumes.size(); i++) {
+            for (int j = i + 1; j < volumes.size(); j++) {
+                Volume a = volumes.get(i);
+                Volume b = volumes.get(j);
+                if (a.colidirCom(b)) {        // (2) chamada polimórfica
+                    a.setEmColisao(true);
+                    b.setEmColisao(true);
+                }
+            }
+        }
     }
 
     private void desenharVolumes() {
