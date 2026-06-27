@@ -9,18 +9,26 @@ public class Circulo extends Volume {
     private float raio;
 
     public Circulo(Vector2 posicao, float raio) {
-        super(posicao);
+        super(posicao, new Color(0.95f, 0.45f, 0.25f, 1f)); // laranja
         this.raio = raio;
-        this.cor = new Color(0.95f, 0.45f, 0.25f, 1f); // laranja
     }
 
     @Override
     public void render(ShapeRenderer renderer) {
-        renderer.setColor(cor);
+        renderer.setColor(corPreenchimento);
         renderer.circle(posicao.x, posicao.y, raio, 40);
     }
 
-    public float getRaio() {
-        return raio;
+    @Override
+    public void renderBorda(ShapeRenderer renderer) {
+        renderer.setColor(corBorda);
+        renderer.circle(posicao.x, posicao.y, raio, 40);
     }
+
+    @Override
+    public boolean contemPonto(Vector2 ponto) {
+        return posicao.dst2(ponto) <= raio * raio;
+    }
+
+    public float getRaio() { return raio; }
 }

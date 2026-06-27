@@ -4,29 +4,30 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 
-/**
- * Superclasse abstrata de todo volume envoltório do GeomLab.
- *
- * Justificativa de polimorfismo: Cena mantém apenas List<Volume> e
- * chama v.render(renderer) uniformemente — cada subclasse decide
- * COMO se desenha, sem que Cena precise conhecer AABB, Circulo ou OBB.
- */
 public abstract class Volume implements Colidivel {
 
     protected Vector2 posicao;
-    protected Color cor;
+    protected Color corBorda;
+    protected Color corPreenchimento;
 
-    public Volume(Vector2 posicao) {
+    private static final float ALPHA_PREENCHIMENTO = 0.25f;
+
+    public Volume(Vector2 posicao, Color corBase) {
         this.posicao = posicao;
-        this.cor = new Color(Color.WHITE);
+        this.corBorda = new Color(corBase);
+        this.corPreenchimento = new Color(corBase.r, corBase.g, corBase.b, ALPHA_PREENCHIMENTO);
     }
 
-    /** Método polimórfico-chave: cada subclasse desenha sua própria forma. */
+    /** Passada 1: preenchimento translúcido. */
     public abstract void render(ShapeRenderer renderer);
 
-    /** Hook protegido para subclasses recalcularem limites internos. */
+    /** Passada 2: contorno sólido — desenhado por cima de todos os preenchimentos. */
+    public abstract void renderBorda(ShapeRenderer renderer);
+
+    public abstract boolean contemPonto(Vector2 ponto);
+
     protected void atualizarLimites() {
-        // Implementação default vazia; subclasses sobrescrevem se necessário
+        // Hook para subclasses recalcularem estado interno após mudança de posição
     }
 
     public Vector2 getPosicao() {
@@ -38,12 +39,8 @@ public abstract class Volume implements Colidivel {
         atualizarLimites();
     }
 
-    public Color getCor() {
-        return cor;
-    }
-
-    public void setCor(Color cor) {
-        this.cor = cor;
+    public Color getCorBorda() {
+        return corBorda;
     }
 
     @Override
@@ -53,7 +50,6 @@ public abstract class Volume implements Colidivel {
 
     @Override
     public boolean colidirCom(Colidivel outro) {
-        // Implementação real via GeometriaUtils chega na Etapa 4
-        return false;
+        return false; // Implementação real chega na Etapa 4
     }
 }

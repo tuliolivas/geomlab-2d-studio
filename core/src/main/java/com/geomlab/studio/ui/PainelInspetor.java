@@ -8,19 +8,19 @@ import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.geomlab.studio.geometry.AABB;
 import com.geomlab.studio.geometry.Circulo;
 import com.geomlab.studio.geometry.OBB;
+import com.geomlab.studio.geometry.Volume;
+import com.geomlab.studio.scene.Cena;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
-import com.geomlab.studio.scene.Cena;
 
-/**
- * Painel lateral (30%). Associação Simples: mantém referência
- * à Cena para delegar a criação de novos Volumes.
- */
 public class PainelInspetor {
 
     private VisTable raiz;
-    private final Cena cena; // Associação: Painel "usa" Cena, mas não a possui
+    private VisLabel labelStatus;
+    private final Cena cena;
+
+    private static final String SEM_SELECAO = "Nenhuma forma selecionada";
 
     public PainelInspetor(Cena cena) {
         this.cena = cena;
@@ -44,14 +44,12 @@ public class PainelInspetor {
                 aoClicarAdicionarAABB();
             }
         });
-
         btnCirculo.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 aoClicarAdicionarCirculo();
             }
         });
-
         btnOBB.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -61,7 +59,25 @@ public class PainelInspetor {
 
         raiz.add(btnAABB).width(220).padBottom(8).row();
         raiz.add(btnCirculo).width(220).padBottom(8).row();
-        raiz.add(btnOBB).width(220).padBottom(8).row();
+        raiz.add(btnOBB).width(220).padBottom(20).row();
+
+        labelStatus = new VisLabel(SEM_SELECAO);
+        labelStatus.setWrap(true);
+        raiz.add(labelStatus).width(220).row();
+    }
+
+    /** Chamado por Cena a cada seleção/arraste/soltura — mantém o painel sincronizado. */
+    public void atualizarStatus(Volume v) {
+        if (v == null) {
+            labelStatus.setText(SEM_SELECAO);
+        } else {
+            labelStatus.setText(String.format(
+                "Selecionado: %s%nPos: (%.0f, %.0f)",
+                v.getClass().getSimpleName(),
+                v.getPosicao().x,
+                v.getPosicao().y
+            ));
+        }
     }
 
     private void aoClicarAdicionarAABB() {
