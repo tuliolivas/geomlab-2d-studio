@@ -17,13 +17,27 @@ public class AABB extends Volume {
 
     @Override
     public void render(ShapeRenderer renderer) {
-        renderer.setColor(resolverCorPreenchimento());
+        renderer.setColor(emColisao ? COR_COLISAO_PREENCHIMENTO : corPreenchimento);
         renderer.rect(getMinX(), getMinY(), largura, altura);
+    }
+    
+    @Override
+    public void renderHalo(ShapeRenderer renderer) {
+        renderer.setColor(COR_HALO);
+        
+        float folga = 5f;
+        float wExpandido = largura + (folga * 2);
+        float hExpandido = altura + (folga * 2);
+        
+        float x = getMinX() - folga;
+        float y = getMinY() - folga;
+        
+        renderer.rect(x, y, wExpandido, hExpandido);
     }
 
     @Override
     public void renderBorda(ShapeRenderer renderer) {
-        renderer.setColor(resolverCorBorda());
+        renderer.setColor(emColisao ? COR_COLISAO_BORDA : corBorda);
         renderer.rect(getMinX(), getMinY(), largura, altura);
     }
 
@@ -33,15 +47,6 @@ public class AABB extends Volume {
             && ponto.y >= getMinY() && ponto.y <= getMaxY();
     }
 
-    public Vector2[] obterVertices() {
-        return new Vector2[] {
-            new Vector2(getMinX(), getMinY()),
-            new Vector2(getMaxX(), getMinY()),
-            new Vector2(getMaxX(), getMaxY()),
-            new Vector2(getMinX(), getMaxY())
-        };
-    }
-    
     @Override
     public boolean colidirCom(Colidivel outro) {
         if (outro instanceof AABB) {
@@ -55,7 +60,15 @@ public class AABB extends Volume {
         }
         return false;
     }
-    // ---- Novos getters de limites, usados por GeometriaUtils e contemPonto ----
+
+    public Vector2[] obterVertices() {
+        return new Vector2[] {
+            new Vector2(getMinX(), getMinY()),
+            new Vector2(getMaxX(), getMinY()),
+            new Vector2(getMaxX(), getMaxY()),
+            new Vector2(getMinX(), getMaxY())
+        };
+    }
 
     public float getMinX() {
         return posicao.x - largura / 2f;
@@ -79,5 +92,13 @@ public class AABB extends Volume {
 
     public float getAltura() {
         return altura;
+    }
+    
+    public void setLargura(float largura) {
+        this.largura = largura;
+    }
+
+    public void setAltura(float altura) {
+        this.altura = altura;
     }
 }

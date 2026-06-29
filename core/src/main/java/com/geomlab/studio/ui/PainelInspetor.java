@@ -2,8 +2,10 @@ package com.geomlab.studio.ui;
 
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.geomlab.studio.geometry.AABB;
 import com.geomlab.studio.geometry.Circulo;
@@ -13,92 +15,126 @@ import com.geomlab.studio.scene.Cena;
 import com.kotcrab.vis.ui.widget.VisLabel;
 import com.kotcrab.vis.ui.widget.VisTable;
 import com.kotcrab.vis.ui.widget.VisTextButton;
+import com.kotcrab.vis.ui.widget.VisTextField;
+
+import java.util.function.Consumer;
 
 public class PainelInspetor {
 
     private VisTable raiz;
-    private VisLabel labelStatus;
-    private final Cena cena;
-
-    private static final String SEM_SELECAO = "Nenhuma forma selecionada";
+    private VisLabel status;
+    private VisLabel totalLabel;
+    private VisTable areaPropriedades;
+    private Cena cena;
 
     public PainelInspetor(Cena cena) {
         this.cena = cena;
-        construirUI();
+        montar();
     }
 
-    private void construirUI() {
+    private void montar() {
         raiz = new VisTable();
         raiz.setBackground("window-bg");
         raiz.top().pad(10);
 
         raiz.add(new VisLabel("Inspetor de Volumes")).padBottom(15).row();
 
-        VisTextButton btnAABB = new VisTextButton("+ Adicionar AABB");
-        VisTextButton btnCirculo = new VisTextButton("+ Adicionar Círculo");
-        VisTextButton btnOBB = new VisTextButton("+ Adicionar OBB");
-
-        btnAABB.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                aoClicarAdicionarAABB();
-            }
-        });
-        btnCirculo.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                aoClicarAdicionarCirculo();
-            }
-        });
-        btnOBB.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                aoClicarAdicionarOBB();
+        VisTextButton bAABB = new VisTextButton("+ AABB");
+        bAABB.addListener(new ClickListener() {
+            public void clicked(InputEvent e, float x, float y) {
+                Vector2 p = cena.gerarPosicaoAleatoriaNoCanvas();
+                cena.adicionarVolume(new AABB(p, MathUtils.random(40, 100), MathUtils.random(40, 100)));
             }
         });
 
-        raiz.add(btnAABB).width(220).padBottom(8).row();
-        raiz.add(btnCirculo).width(220).padBottom(8).row();
-        raiz.add(btnOBB).width(220).padBottom(20).row();
+        VisTextButton bCirculo = new VisTextButton("+ Circulo");
+        bCirculo.addListener(new ClickListener() {
+            public void clicked(InputEvent e, float x, float y) {
+                Vector2 p = cena.gerarPosicaoAleatoriaNoCanvas();
+                cena.adicionarVolume(new Circulo(p, MathUtils.random(25, 55)));
+            }
+        });
 
-        labelStatus = new VisLabel(SEM_SELECAO);
-        labelStatus.setWrap(true);
-        raiz.add(labelStatus).width(220).row();
+        VisTextButton bOBB = new VisTextButton("+ OBB");
+        bOBB.addListener(new ClickListener() {
+            public void clicked(InputEvent e, float x, float y) {
+                Vector2 p = cena.gerarPosicaoAleatoriaNoCanvas();
+                cena.adicionarVolume(new OBB(p, MathUtils.random(50, 100), MathUtils.random(30, 70), MathUtils.random(0, 360)));
+            }
+        });
+
+        raiz.add(bAABB).width(220).padBottom(8).row();
+        raiz.add(bCirculo).width(220).padBottom(8).row();
+        raiz.add(bOBB).width(220).padBottom(15).row();
+
+        VisTextButton bDeletar = new VisTextButton("Remover Selecionado");
+        bDeletar.addListener(new ClickListener() {
+            public void clicked(InputEvent e, float x, float y) {
+                cena.removerSelecionado();
+            }
+        });
+        raiz.add(bDeletar).width(220).padBottom(15).row();
+
+        totalLabel = new VisLabel("Formas criadas: 0");
+        raiz.add(totalLabel).width(220).padBottom(15).row();
+
+        status = new VisLabel("Nenhuma forma selecionada");
+        status.setWrap(true);
+        raiz.add(status).width(220).padBottom(10).row();
+
+        areaPropriedades = new VisTable();
+        raiz.add(areaPropriedades).width(220).row();
     }
 
-    /** Chamado por Cena a cada seleção/arraste/soltura — mantém o painel sincronizado. */
-    public void atualizarStatus(Volume v) {
+    public void selecionar(Volume v) {
+        totalLabel.setText("Formas criadas: " + Volume.getTotalCriados());
+        areaPropriedades.clear();
+
         if (v == null) {
-            labelStatus.setText(SEM_SELECAO);
-        } else {
-            labelStatus.setText(String.format(
-                "Selecionado: %s%nPos: (%.0f, %.0f)",
-                v.getClass().getSimpleName(),
-                v.getPosicao().x,
-                v.getPosicao().y
-            ));
+            status.setText("Nenhuma forma selecionada");
+            return;
+        }
+
+        atualizarPosicao(v);
+
+        if (v instanceof AABB) {
+            AABB a = (AABB) v;
+            addCampo("Largura", a.getLargura(), a::setLargura);
+            addCampo("Altura", a.getAltura(), a::setAltura);
+        } else if (v instanceof Circulo) {
+            Circulo c = (Circulo) v;
+            addCampo("Raio", c.getRaio(), c::setRaio);
+        } else if (v instanceof OBB) {
+            OBB o = (OBB) v;
+            addCampo("Largura", o.getLargura(), o::setLargura);
+            addCampo("Altura", o.getAltura(), o::setAltura);
+            addCampo("Angulo", o.getAnguloRotacao(), o::setAnguloRotacao);
         }
     }
 
-    private void aoClicarAdicionarAABB() {
-        Vector2 pos = cena.gerarPosicaoAleatoriaNoCanvas();
-        float largura = MathUtils.random(40, 100);
-        float altura = MathUtils.random(40, 100);
-        cena.adicionarVolume(new AABB(pos, largura, altura));
+    public void atualizarPosicao(Volume v) {
+        if (v == null) return;
+        status.setText("Selecionado: " + v.getClass().getSimpleName()
+            + "\nPos: (" + (int) v.getPosicao().x + ", " + (int) v.getPosicao().y + ")");
     }
 
-    private void aoClicarAdicionarCirculo() {
-        Vector2 pos = cena.gerarPosicaoAleatoriaNoCanvas();
-        float raio = MathUtils.random(25, 55);
-        cena.adicionarVolume(new Circulo(pos, raio));
-    }
+    private void addCampo(String nome, float valorInicial, Consumer<Float> aoMudar) {
+        VisTable linha = new VisTable();
+        linha.add(new VisLabel(nome)).width(70).left();
 
-    private void aoClicarAdicionarOBB() {
-        Vector2 pos = cena.gerarPosicaoAleatoriaNoCanvas();
-        float largura = MathUtils.random(50, 100);
-        float altura = MathUtils.random(30, 70);
-        float angulo = MathUtils.random(0, 360);
-        cena.adicionarVolume(new OBB(pos, largura, altura, angulo));
+        VisTextField campo = new VisTextField(String.valueOf((int) valorInicial));
+        campo.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                try {
+                    aoMudar.accept(Float.parseFloat(campo.getText()));
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        });
+
+        linha.add(campo).width(130);
+        areaPropriedades.add(linha).padBottom(6).row();
     }
 
     public Table getRaiz() {

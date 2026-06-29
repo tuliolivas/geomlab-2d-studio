@@ -6,10 +6,9 @@ import com.badlogic.gdx.graphics.GL20;
 import com.geomlab.studio.scene.Cena;
 import com.kotcrab.vis.ui.VisUI;
 
-/**
- * Classe raiz do ciclo de vida da aplicação.
- * Demonstra COMPOSIÇÃO: a Cena não existe sem a App e morre com ela.
- */
+
+//Classe raiz do ciclo de vida da aplicação.
+
 public class GeomLab2DStudioApp extends ApplicationAdapter {
 
     // Composição: Cena é instanciada e destruída exclusivamente por esta classe
@@ -17,7 +16,7 @@ public class GeomLab2DStudioApp extends ApplicationAdapter {
 
     @Override
     public void create() {
-        VisUI.load(); // Inicializa o skin padrão do VisUI
+        VisUI.load();
         this.cena = new Cena();
         this.cena.construir();
     }

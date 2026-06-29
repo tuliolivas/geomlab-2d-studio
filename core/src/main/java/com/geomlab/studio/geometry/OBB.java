@@ -19,13 +19,30 @@ public class OBB extends Volume {
 
     @Override
     public void render(ShapeRenderer renderer) {
-        renderer.setColor(resolverCorPreenchimento());
+        renderer.setColor(emColisao ? COR_COLISAO_PREENCHIMENTO : corPreenchimento);
         desenharTriangulos(renderer);
     }
 
     @Override
+    public void renderHalo(ShapeRenderer renderer) {
+        renderer.setColor(COR_HALO);
+        
+        float folga = 5f;
+        float wExpandido = largura + (folga * 2);
+        float hExpandido = altura + (folga * 2);
+        
+        float originX = wExpandido / 2f;
+        float originY = hExpandido / 2f;
+        
+        float x = posicao.x - originX;
+        float y = posicao.y - originY;
+        
+        renderer.rect(x, y, originX, originY, wExpandido, hExpandido, 1f, 1f, anguloRotacao);
+    }
+    
+    @Override
     public void renderBorda(ShapeRenderer renderer) {
-        renderer.setColor(resolverCorBorda());
+        renderer.setColor(emColisao ? COR_COLISAO_BORDA : corBorda);
         Vector2[] v = obterVertices();
         renderer.line(v[0], v[1]);
         renderer.line(v[1], v[2]);
@@ -60,7 +77,6 @@ public class OBB extends Volume {
         return false;
     }
 
-    /** Retorna os 4 vértices do retângulo já rotacionados e posicionados no mundo. */
     public Vector2[] obterVertices() {
         float meiaLargura = largura / 2f;
         float meiaAltura = altura / 2f;
@@ -79,7 +95,6 @@ public class OBB extends Volume {
         return locais;
     }
 
-    /** Retorna os 2 eixos (normais às arestas) usados no teste SAT. */
     public Vector2[] obterEixos() {
         Vector2 eixoX = new Vector2(1, 0).rotateDeg(anguloRotacao);
         Vector2 eixoY = new Vector2(0, 1).rotateDeg(anguloRotacao);
@@ -89,7 +104,7 @@ public class OBB extends Volume {
     public float getLargura() {
         return largura;
     }
-
+    
     public float getAltura() {
         return altura;
     }
@@ -97,6 +112,14 @@ public class OBB extends Volume {
     public float getAnguloRotacao() {
         return anguloRotacao;
     }
+    
+    public void setLargura(float largura) {
+        this.largura = largura;
+    }
+
+    public void setAltura(float altura) {
+        this.altura = altura;
+    }    
 
     public void setAnguloRotacao(float anguloRotacao) {
         this.anguloRotacao = anguloRotacao;

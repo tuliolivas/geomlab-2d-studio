@@ -9,19 +9,25 @@ public class Circulo extends Volume {
     private float raio;
 
     public Circulo(Vector2 posicao, float raio) {
-        super(posicao, new Color(0.95f, 0.95f, 0.25f, 1f)); // laranja
+        super(posicao, new Color(0.95f, 0.45f, 0.25f, 1f));
         this.raio = raio;
     }
 
     @Override
     public void render(ShapeRenderer renderer) {
-        renderer.setColor(resolverCorPreenchimento());
+        renderer.setColor(emColisao ? COR_COLISAO_PREENCHIMENTO : corPreenchimento);
         renderer.circle(posicao.x, posicao.y, raio, 40);
+    }
+    
+    @Override
+    public void renderHalo(ShapeRenderer renderer) {
+        renderer.setColor(COR_HALO);
+        renderer.circle(posicao.x, posicao.y, raio + 5f, 40);
     }
 
     @Override
     public void renderBorda(ShapeRenderer renderer) {
-        renderer.setColor(resolverCorBorda());
+        renderer.setColor(emColisao ? COR_COLISAO_BORDA : corBorda);
         renderer.circle(posicao.x, posicao.y, raio, 40);
     }
 
@@ -30,8 +36,6 @@ public class Circulo extends Volume {
         return posicao.dst2(ponto) <= raio * raio;
     }
 
-    public float getRaio() { return raio; }
-    
     @Override
     public boolean colidirCom(Colidivel outro) {
         if (outro instanceof Circulo) {
@@ -44,5 +48,13 @@ public class Circulo extends Volume {
             return GeometriaUtils.intersectaOBBvsCirculo((OBB) outro, this);
         }
         return false;
+    }
+
+    public float getRaio() {
+        return raio;
+    }
+
+    public void setRaio(float raio) {
+        this.raio = raio;
     }
 }
