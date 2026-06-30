@@ -50,17 +50,23 @@ public class OBB extends Volume {
         renderer.line(v[3], v[0]);
     }
 
-    private void desenharTriangulos(ShapeRenderer renderer) {
-        Vector2[] v = obterVertices();
-        renderer.triangle(v[0].x, v[0].y, v[1].x, v[1].y, v[2].x, v[2].y);
-        renderer.triangle(v[0].x, v[0].y, v[2].x, v[2].y, v[3].x, v[3].y);
-    }
-
     @Override
     public boolean contemPonto(Vector2 ponto) {
         Vector2 relativo = new Vector2(ponto).sub(posicao);
         relativo.rotateDeg(-anguloRotacao);
         return Math.abs(relativo.x) <= largura / 2f && Math.abs(relativo.y) <= altura / 2f;
+    }
+    
+    @Override
+    public float getRaioEnvolvente() {
+        // rotacao nao muda a diagonal, entao a formula e igual a do AABB
+        return (float) Math.sqrt(largura * largura + altura * altura) / 2f;
+    }
+    
+    private void desenharTriangulos(ShapeRenderer renderer) {
+        Vector2[] v = obterVertices();
+        renderer.triangle(v[0].x, v[0].y, v[1].x, v[1].y, v[2].x, v[2].y);
+        renderer.triangle(v[0].x, v[0].y, v[2].x, v[2].y, v[3].x, v[3].y);
     }
 
     @Override

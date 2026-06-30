@@ -35,6 +35,11 @@ public class Circulo extends Volume {
     public boolean contemPonto(Vector2 ponto) {
         return posicao.dst2(ponto) <= raio * raio;
     }
+    
+    @Override
+    public float getRaioEnvolvente() {
+        return raio;
+    }
 
     @Override
     public boolean colidirCom(Colidivel outro) {

@@ -30,6 +30,7 @@ public abstract class Volume implements Colidivel {
     public abstract void renderHalo(ShapeRenderer renderer);
     public abstract void renderBorda(ShapeRenderer renderer);
     public abstract boolean contemPonto(Vector2 ponto);
+    public abstract float getRaioEnvolvente();
 
     protected void atualizarLimites() {}
 
@@ -44,22 +45,22 @@ public abstract class Volume implements Colidivel {
     public Vector2 getPosicao() {
         return posicao;
     }
+    
+    @Override
+    public Vector2 getCentro() {
+        return posicao;
+    }
 
     public void setPosicao(Vector2 posicao) {
         this.posicao = posicao;
         atualizarLimites();
     }
 
-    public boolean isEmColisao() {
-        return emColisao;
-    }
-
     public void setEmColisao(boolean emColisao) {
         this.emColisao = emColisao;
     }
-
-    @Override
-    public Vector2 getCentro() {
-        return posicao;
+    
+    public boolean isEmColisao() {
+        return emColisao;
     }
 }

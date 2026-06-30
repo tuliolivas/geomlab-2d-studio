@@ -46,6 +46,11 @@ public class AABB extends Volume {
         return ponto.x >= getMinX() && ponto.x <= getMaxX()
             && ponto.y >= getMinY() && ponto.y <= getMaxY();
     }
+    
+    @Override
+    public float getRaioEnvolvente() {
+        return (float) Math.sqrt(largura * largura + altura * altura) / 2f;
+    }
 
     @Override
     public boolean colidirCom(Colidivel outro) {

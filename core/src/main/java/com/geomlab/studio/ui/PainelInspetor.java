@@ -26,6 +26,9 @@ public class PainelInspetor {
     private VisLabel totalLabel;
     private VisTable areaPropriedades;
     private Cena cena;
+    private Volume volumeAtual; // forma sendo editada agora, usada pra reposicionar apos mudar tamanho
+
+    private static final float TAMANHO_MINIMO = 10f;
 
     public PainelInspetor(Cena cena) {
         this.cena = cena;
@@ -89,6 +92,7 @@ public class PainelInspetor {
     public void selecionar(Volume v) {
         totalLabel.setText("Formas criadas: " + Volume.getTotalCriados());
         areaPropriedades.clear();
+        volumeAtual = v;
 
         if (v == null) {
             status.setText("Nenhuma forma selecionada");
@@ -99,16 +103,16 @@ public class PainelInspetor {
 
         if (v instanceof AABB) {
             AABB a = (AABB) v;
-            addCampo("Largura", a.getLargura(), a::setLargura);
-            addCampo("Altura", a.getAltura(), a::setAltura);
+            addCampoTamanho("Largura", a.getLargura(), a::setLargura);
+            addCampoTamanho("Altura", a.getAltura(), a::setAltura);
         } else if (v instanceof Circulo) {
             Circulo c = (Circulo) v;
-            addCampo("Raio", c.getRaio(), c::setRaio);
+            addCampoTamanho("Raio", c.getRaio(), c::setRaio);
         } else if (v instanceof OBB) {
             OBB o = (OBB) v;
-            addCampo("Largura", o.getLargura(), o::setLargura);
-            addCampo("Altura", o.getAltura(), o::setAltura);
-            addCampo("Angulo", o.getAnguloRotacao(), o::setAnguloRotacao);
+            addCampoTamanho("Largura", o.getLargura(), o::setLargura);
+            addCampoTamanho("Altura", o.getAltura(), o::setAltura);
+            addCampoAngulo("Angulo", o.getAnguloRotacao(), o::setAnguloRotacao);
         }
     }
 
@@ -118,7 +122,33 @@ public class PainelInspetor {
             + "\nPos: (" + (int) v.getPosicao().x + ", " + (int) v.getPosicao().y + ")");
     }
 
-    private void addCampo(String nome, float valorInicial, Consumer<Float> aoMudar) {
+    /** Campo de largura/altura/raio -- limitado ao tamanho maximo que cabe no canvas. */
+    private void addCampoTamanho(String nome, float valorInicial, Consumer<Float> aoMudar) {
+        VisTable linha = new VisTable();
+        linha.add(new VisLabel(nome)).width(70).left();
+
+        VisTextField campo = new VisTextField(String.valueOf((int) valorInicial));
+        campo.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                try {
+                    float valor = Float.parseFloat(campo.getText());
+                    float max = cena.getTamanhoMaximoPermitido();
+                    valor = MathUtils.clamp(valor, TAMANHO_MINIMO, max);
+                    aoMudar.accept(valor);
+                    cena.notificarMudancaTamanho(volumeAtual);
+                } catch (NumberFormatException ignored) {
+                    // usuario ainda digitando, ignora por enquanto
+                }
+            }
+        });
+
+        linha.add(campo).width(130);
+        areaPropriedades.add(linha).padBottom(6).row();
+    }
+
+    /** Campo de angulo -- nao tem limite de tamanho, so normaliza 0-360. */
+    private void addCampoAngulo(String nome, float valorInicial, Consumer<Float> aoMudar) {
         VisTable linha = new VisTable();
         linha.add(new VisLabel(nome)).width(70).left();
 

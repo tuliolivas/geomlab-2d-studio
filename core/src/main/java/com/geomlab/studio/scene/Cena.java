@@ -37,6 +37,7 @@ public class Cena {
     private float limitePainel;
 
     private static final float PROP_PAINEL = 0.30f;
+    private static final float MARGEM_SEGURANCA = 10f;
 
     public void construir() {
         stage = new Stage(new ScreenViewport());
@@ -62,6 +63,7 @@ public class Cena {
     }
 
     public void adicionarVolume(Volume v) {
+    	v.setPosicao(limitarAoCanvas(v.getPosicao(), v.getRaioEnvolvente()));
         volumes.add(v);
         selecionado = v;
         painel.selecionar(v);
@@ -83,6 +85,32 @@ public class Cena {
         float y = MathUtils.random(60, h - 60);
         return new Vector2(x, y);
     }
+    
+    public float getTamanhoMaximoPermitido() {
+        float larguraCanvas = Gdx.graphics.getWidth() - limitePainel;
+        float alturaCanvas = Gdx.graphics.getHeight();
+        return Math.min(larguraCanvas, alturaCanvas) / 2f - MARGEM_SEGURANCA;
+    }
+    
+    public void notificarMudancaTamanho(Volume v) {
+        if (v == null) return;
+        v.setPosicao(limitarAoCanvas(v.getPosicao(), v.getRaioEnvolvente()));
+    }
+    
+    private Vector2 limitarAoCanvas(Vector2 pos, float raio) {
+        float larguraTela = Gdx.graphics.getWidth();
+        float alturaTela = Gdx.graphics.getHeight();
+
+        float minX = limitePainel + raio;
+        float maxX = larguraTela - raio;
+        float minY = raio;
+        float maxY = alturaTela - raio;
+
+        float x = (minX <= maxX) ? MathUtils.clamp(pos.x, minX, maxX) : (limitePainel + larguraTela) / 2f;
+        float y = (minY <= maxY) ? MathUtils.clamp(pos.y, minY, maxY) : alturaTela / 2f;
+
+        return new Vector2(x, y);
+    }
 
     public void render(float delta) {
         stage.act(delta);
@@ -98,12 +126,15 @@ public class Cena {
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
         sr.begin(ShapeRenderer.ShapeType.Filled);
+        
         for (Volume v : volumes) {
             v.render(sr);
         }
+        
         sr.end();
         
         sr.begin(ShapeRenderer.ShapeType.Line);
+        
         if (selecionado != null) {
         	selecionado.renderHalo(sr);
         }
@@ -111,6 +142,7 @@ public class Cena {
         for (Volume v : volumes) {
             v.renderBorda(sr);
         }
+        
         sr.end();
     }
 
@@ -175,7 +207,9 @@ public class Cena {
             @Override
             public boolean touchDragged(int x, int y, int pointer) {
                 if (arrastando && selecionado != null) {
-                    selecionado.setPosicao(paraMundo(x, y));
+                    Vector2 mundo = paraMundo(x, y);
+                    Vector2 limitado = limitarAoCanvas(mundo, selecionado.getRaioEnvolvente());
+                    selecionado.setPosicao(limitado);
                     painel.atualizarPosicao(selecionado);
                     return true;
                 }
@@ -240,6 +274,9 @@ public class Cena {
         layoutRaiz.getCells().get(0).width(limitePainel);
         layoutRaiz.getCells().get(1).width(width - limitePainel);
         layoutRaiz.invalidate();
+        for (Volume v : volumes) {
+            v.setPosicao(limitarAoCanvas(v.getPosicao(), v.getRaioEnvolvente()));
+        }
     }
 
     private Drawable criarFundoCanvas() {
