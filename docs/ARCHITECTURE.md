@@ -1,11 +1,11 @@
-# 📐 Especificação Arquitetural — GeomLab 2D Studio
+# Especificação Arquitetural — GeomLab 2D Studio
 
 ## 1. Visão Geral
 
 O sistema segue uma arquitetura de **Composição de Tela** típica do LibGDX, separando claramente:
 
 - **Camada de Apresentação** — `GeomLab2DStudioApp` (ciclo de vida da aplicação)
-- **Camada de Cena** — `Cena` (orquestra o estado do mundo geométrico)
+- **Camada de Cena** — `Cena` (orquestra o estado do mundo geométrico, seleção, arraste e limites de canvas)
 - **Camada de UI** — `PainelInspetor` (VisUI / Scene2D)
 - **Camada de Domínio Geométrico** (pacote `com.geomlab.studio.geometry`) — `Volume` (abstração polimórfica), `AABB`, `Circulo`, `OBB`
 - **Camada de Contrato** — `Colidivel` (interface)
@@ -13,13 +13,13 @@ O sistema segue uma arquitetura de **Composição de Tela** típica do LibGDX, s
 
 > **Decisão de arquitetura:** o projeto não utiliza motores de física (ex: Box2D). Usa apenas as primitivas matemáticas do `com.badlogic.gdx.math` (`Vector2`, `MathUtils`) como base aritmética, implementando seus próprios algoritmos de detecção de colisão em `GeometriaUtils`. Isso preserva a clareza didática do polimorfismo via `Colidivel` e a genuinidade da classe utilitária exigida pelo projeto.
 
-> **Decisão de renderização:** `Volume.render()` usa `ShapeRenderer` (geometria vetorial), não `SpriteBatch` (sprites/texturas). O desenho é feito em **duas passadas por frame**: `render()` (preenchimento translúcido) e `renderBorda()` (contorno sólido, desenhado por cima de todos os preenchimentos) — isso evita que formas sobrepostas se ocultem totalmente umas às outras.
+> **Decisão de renderização:** `Volume.render()` usa `ShapeRenderer` (geometria vetorial), não `SpriteBatch` (sprites/texturas). O desenho é feito em **duas passadas por frame**: `render()` (preenchimento translúcido) e `renderBorda()` (halo e contorno sólido, desenhado por cima de todos os preenchimentos) — isso evita que formas sobrepostas se ocultem totalmente umas às outras.
 
 ---
 
 ## 2. Justificativa do Polimorfismo (`Volume`)
 
-A superclasse abstrata `Volume` permite que `Cena` mantenha uma única coleção `List<Volume>` contendo `AABB`, `Circulo` e `OBB` simultaneamente, sem precisar de `if/else instanceof` espalhado pelo código. Os métodos `render(ShapeRenderer)`, `renderBorda(ShapeRenderer)` e `colidirCom(Colidivel)` são despachados dinamicamente (*dynamic dispatch*): cada subclasse decide como se desenha e como testa colisão, mas a `Cena` chama todos de forma uniforme:
+A superclasse abstrata `Volume` permite que `Cena` mantenha uma única coleção `List<Volume>` contendo `AABB`, `Circulo` e `OBB` simultaneamente, sem precisar de `if/else instanceof` espalhado pelo código. Cinco métodos são chamados dinamicamente (*dynamic dispatch*): `render(ShapeRenderer)`, `renderHalo(ShapeRenderer)`, `renderBorda(ShapeRenderer)`, `colidirCom(Colidivel)` e `getRaioEnvolvente()` — cada subclasse decide como se desenha, como testa colisão e qual seu alcance espacial máximo, mas a `Cena` chama todos de forma uniforme:
 
 ```java
 for (Volume v : volumes) v.render(shapeRenderer);
@@ -45,19 +45,26 @@ classDiagram
     class Cena {
         -List~Volume~ volumes
         -PainelInspetor painel
-        -Volume volumeSelecionado
+        -Volume selecionado
         -boolean arrastando
+        -float limitePainel
         +void adicionarVolume(Volume v)
+        +void removerSelecionado()
         +void render(float delta)
+        +float getTamanhoMaximoPermitido()
+        +void notificarMudancaTamanho(Volume v)
         #void verificarColisoes()
+        -Vector2 limitarAoCanvas(Vector2 pos, float raio)
     }
 
     class PainelInspetor {
         -VisTable raiz
         -Cena cena
+        -Volume volumeAtual
         +void construirUI()
-        +void atualizarStatus(Volume v)
-        -void aoClicarAdicionarAABB()
+        +void selecionar(Volume v)
+        +void atualizarPosicao(Volume v)
+        -void addCampoTamanho(...)
     }
 
     class Colidivel {
@@ -72,11 +79,16 @@ classDiagram
         #Color corBorda
         #Color corPreenchimento
         #boolean emColisao
+        #static int totalCriados
+        #final int idCriacao
         +Volume(Vector2 pos, Color corBase)
         +void render(ShapeRenderer r)*
+        +void renderHalo(ShapeRenderer)*
         +void renderBorda(ShapeRenderer r)*
         +boolean contemPonto(Vector2 p)*
         +boolean colidirCom(Colidivel outro)*
+        +float getRaioEnvolvente()*
+        +static int getTotalCriados()
         #void atualizarLimites()
     }
 
@@ -84,17 +96,21 @@ classDiagram
         -float largura
         -float altura
         +void render(ShapeRenderer r)
+        +void renderHalo(ShapeRenderer r)
         +void renderBorda(ShapeRenderer r)
         +boolean contemPonto(Vector2 p)
         +boolean colidirCom(Colidivel outro)
+        +float getRaioEnvolvente()
     }
 
     class Circulo {
         -float raio
         +void render(ShapeRenderer r)
+        +void renderHalo(ShapeRenderer r)
         +void renderBorda(ShapeRenderer r)
         +boolean contemPonto(Vector2 p)
         +boolean colidirCom(Colidivel outro)
+        +float getRaioEnvolvente()
     }
 
     class OBB {
@@ -102,9 +118,11 @@ classDiagram
         -float altura
         -float anguloRotacao
         +void render(ShapeRenderer r)
+        +void renderHalo(ShapeRenderer r)
         +void renderBorda(ShapeRenderer r)
         +boolean contemPonto(Vector2 p)
         +boolean colidirCom(Colidivel outro)
+        +float getRaioEnvolvente()
         +Vector2[] obterVertices()
         +Vector2[] obterEixos()
     }
@@ -136,23 +154,32 @@ classDiagram
 Dentro de `Cena.render(float delta)`:
 
 ```java
-private void desenharVolumes() {
-    shapeRenderer.setProjectionMatrix(stage.getCamera().combined);
-    Gdx.gl.glEnable(GL20.GL_BLEND);
-    Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+private void desenhar() {
+        sr.setProjectionMatrix(stage.getCamera().combined);
 
-    shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-    for (Volume v : volumes) {
-        v.render(shapeRenderer);       // (1) Despacho dinâmico: preenchimento translúcido
-    }
-    shapeRenderer.end();
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
-    shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-    for (Volume v : volumes) {
-        v.renderBorda(shapeRenderer);  // (2) Despacho dinâmico: contorno sólido, por cima de tudo
+        sr.begin(ShapeRenderer.ShapeType.Filled);
+        
+        for (Volume v : volumes) {
+            v.render(sr);
+        }
+        
+        sr.end();
+        
+        sr.begin(ShapeRenderer.ShapeType.Line);
+        
+        if (selecionado != null) {
+        	selecionado.renderHalo(sr);
+        }
+
+        for (Volume v : volumes) {
+            v.renderBorda(sr);
+        }
+        
+        sr.end();
     }
-    shapeRenderer.end();
-}
 
 protected void verificarColisoes() {
     for (Volume v : volumes) {
@@ -162,7 +189,7 @@ protected void verificarColisoes() {
         for (int j = i + 1; j < volumes.size(); j++) {
             Volume a = volumes.get(i);
             Volume b = volumes.get(j);
-            if (a.colidirCom(b)) {       // (3) Despacho dinâmico via interface Colidivel
+            if (a.colidirCom(b)) {  // (3) Despacho dinâmico via interface Colidivel
                 a.setEmColisao(true);
                 b.setEmColisao(true);
             }
@@ -171,9 +198,13 @@ protected void verificarColisoes() {
 }
 ```
 
-Cada uma das três chamadas (`v.render()`, `v.renderBorda()`, `a.colidirCom(b)`) é resolvida **em tempo de execução**, conforme o tipo concreto real do objeto (`AABB`, `Circulo` ou `OBB`) — sem nenhum `instanceof` no lado de `Cena`.
+Uma quinta chamada dinâmico ocorre fora do ciclo de render, mas igualmente relevante para a rubrica de polimorfismo, em `Cena.limitarAoCanvas`:
 
-> **Estado de colisão por forma:** `emColisao` é um booleano por `Volume`, resetado e recalculado a cada frame. Isso suporta qualquer quantidade de colisões simultâneas (3+ formas sobrepostas ao mesmo tempo) sem ambiguidade — não há necessidade de rastrear "cor por par", apenas "esta forma está, neste frame, tocando alguém?".
+```java
+Vector2 limitado = limitarAoCanvas(mundo, selecionado.getRaioEnvolvente());
+```
+
+Cada uma dessas cinco chamadas é resolvida **em tempo de execução**, conforme o tipo concreto real do objeto (`AABB`, `Circulo` ou `OBB`) — sem nenhum `instanceof` no lado de `Cena` para decidir o comportamento.
 
 ---
 
@@ -201,29 +232,14 @@ Cada uma das três chamadas (`v.render()`, `v.renderBorda()`, `a.colidirCom(b)`)
 | 3c | Agregação | `Cena o-- Volume` | `Cena` mantém `List<Volume>`, mas os volumes podem existir independentemente |
 | 3d | Composição | `GeomLab2DStudioApp *-- Cena` | Ciclo de vida da `Cena` é totalmente dependente de `GeomLab2DStudioApp` |
 | 4a | Interface (abstração 1) | `Colidivel` | `<<interface>>` com `colidirCom()` e `getCentro()` |
-| 4b | Classe Abstrata (abstração 2) | `Volume` | `<<abstract>>` com `render`, `renderBorda`, `contemPonto`, `colidirCom` marcados `*` |
-| 5 | 3 chamadas polimórficas no render() | `Cena` (métodos `desenharVolumes` e `verificarColisoes`) | `v.render(shapeRenderer)`, `v.renderBorda(shapeRenderer)`, `a.colidirCom(b)` |
+| 4b | Classe Abstrata (abstração 2) | `Volume` | `<<abstract>>` com `render`, `renderBorda`, `contemPonto`, `colidirCom`, `getRaioEnvolvente` marcados `*` |
+| 5 | 4 chamadas polimórficas no render() | `Cena` (métodos `desenhar` e `verificarColisoes`) | `v.render(sr)`, `v.renderHalo(sr)`, `v.renderBorda(sr)`, `a.colidirCom(b)` (um 5º chamada extra, `getRaioEnvolvente()`, ocorre fora do render, em `limitarAoCanvas`) |
 | 6 | Modificadores `+` / `#` / `-` | `Volume` (`#posicao`, `#emColisao`), `GeomLab2DStudioApp` (`#dispose`), `Volume` (`+render`), `AABB` (`-largura`) | Presentes em todas as classes do domínio |
-| 7 | 1 atributo estático + 1 método estático | `GeometriaUtils` | `-static float EPSILON` / 6 métodos `+static boolean intersecta...(...)` |
+| 7 | 1 atributo estático + 1 método estático | `GeometriaUtils` | `-static float EPSILON` / 6 métodos `+static boolean intersecta...(...)`; reforçado por `Volume.totalCriados`/`getTotalCriados()` |
 
 ---
 
-## 7. Roadmap de Desenvolvimento
-
-| Etapa | Nome | Entregável Visível | Foco POO | Status |
-|---|---|---|---|---|
-| 1 | Fundação e Esqueleto Visual | Janela LibGDX abre, divisão 30/70 (Inspetor/Canvas) renderizada com VisUI | Estrutura de classes, Composição (`App *-- Cena`) | ✅ Concluída |
-| 2 | Domínio Geométrico (Volume) | `Volume`, `AABB`, `Circulo`, `OBB` desenhando-se no Canvas via clique do Inspetor | Herança, Abstração, Polimorfismo no `render()` | ✅ Concluída |
-| 3 | Interatividade e Manipulação | Arrastar/mover formas no Canvas com mouse, sincronizado com o Inspetor; "trazer para frente" ao selecionar | Associação, Encapsulamento | ✅ Concluída |
-| 4 | Motor de Colisão | 6 pares de colisão (SAT + clamping) com feedback visual (cor de alerta), suportando colisões simultâneas múltiplas | Interface `Colidivel`, Dependência (`GeometriaUtils`), Agregação, atributo/método estático | ✅ Concluída |
-| 5 | Polimento e Persistência | Painel completo, salvar/carregar cena (JSON), métricas estáticas | Atributo/Método estático, refino dos modificadores de visibilidade | 🔜 Próxima |
-| 6 | Nuvens de Pontos e Encapsulamento Mínimo | Geração de pontos numa área + cálculo da menor primitiva que cubra todos eles; recoloração dinâmica de pontos que saiam da forma ao arrastá-la | Reaproveitamento de `GeometriaUtils`, novo método polimórfico "contémPonto" em `Volume` | ⏳ Planejada (depende das Etapas 3 e 4) |
-
-> **Nota de escopo (Etapa 6):** o problema de "menor forma que cubra a maior quantidade possível de pontos" foi deliberadamente simplificado para o problema clássico de **Minimum Enclosing Shape** — a menor primitiva que cubra **todos** os pontos da nuvem, sem rejeição de outliers. A versão com rejeição de outliers (mais próxima de RANSAC/*trimmed estimators*) é um problema de otimização mais complexo e foi descartada para manter o foco didático em POO, não em algoritmos de otimização geométrica.
-
----
-
-## 8. Ambiente de Desenvolvimento
+## 7. Ambiente de Desenvolvimento
 
 | Item | Configuração |
 |---|---|
