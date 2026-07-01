@@ -1,8 +1,8 @@
-# 🧪 GeomLab 2D Studio
+# GeomLab 2D Studio
 
 > Software educacional desktop para visualização, manipulação e teste de colisão entre primitivas geométricas 2D (AABB, Círculo e OBB), desenvolvido como projeto prático de **Programação Orientada a Objetos**.
 
-![Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)
+![Status](https://img.shields.io/badge/status-concluído-brightgreen)
 ![Java](https://img.shields.io/badge/Java-8%2B-orange)
 ![LibGDX](https://img.shields.io/badge/LibGDX-LWJGL3-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -11,26 +11,37 @@
 
 ## 📖 Sobre o Projeto
 
-**GeomLab 2D Studio** é um laboratório visual interativo onde o usuário configura nuvens de pontos e formas geométricas envoltórias (*bounding volumes*) através de um painel inspetor, observando em tempo real seu comportamento e colisão em um canvas cartesiano.
+**GeomLab 2D Studio** é uma aplicação visual interativa onde o usuário cria, seleciona, edita, arrasta e remove formas geométricas (AABB, Círculo, OBB) através de um painel inspetor, observando em tempo real seu comportamento e colisão em um canvas cartesiano.
 
-O projeto foi concebido como exercício prático de **Orientação a Objetos**, aplicando de forma genuína (não decorativa) os quatro pilares — Abstração, Encapsulamento, Herança e Polimorfismo — além das quatro relações estruturais entre classes (Associação, Agregação, Composição e Dependência).
+O projeto foi concebido como exercício prático de **Orientação a Objetos**, aplicando seus quatro pilares — Abstração, Encapsulamento, Herança e Polimorfismo — além das quatro relações estruturais entre classes (Associação, Agregação, Composição e Dependência).
 
-📐 A especificação completa da arquitetura e o diagrama de classes estão em [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+A especificação completa da arquitetura e o diagrama de classes estão em [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ---
 
-## 🖥️ Interface
+## Interface
 
 A tela principal é dividida em duas regiões:
 
 | Região | Proporção | Função |
 |---|---|---|
-| **Painel Inspetor** | 30% (esquerda) | Configuração de nuvens de pontos e criação de volumes (AABB, Círculo, OBB) |
-| **Canvas Cartesiano** | 70% (direita) | Visualização, manipulação e teste de colisão entre as formas |
+| **Painel Inspetor** | 30% (esquerda) | Criação de formas, edição de propriedades, remoção e status da seleção atual |
+| **Canvas Cartesiano** | 70% (direita) | Visualização, seleção, arraste e teste de colisão entre as formas |
+
+### Funcionalidades principais
+
+- **Criação** de AABB, Círculo e OBB com tamanho/ângulo aleatórios, via botões do Inspetor
+- **Seleção persistente**: clicar numa forma a mantém selecionada até outra ação acontecer (clicar em outra forma ou em área vazia)
+- **Desambiguação de sobreposição**: quando várias formas ocupam o mesmo ponto, **Ctrl+clique** alterna para a mais antiga entre as candidatas; clique simples nessa região limpa a seleção
+- **Edição de propriedades em tempo real**: largura, altura, raio e ângulo são editáveis diretamente no painel, com efeito imediato no canvas
+- **Arraste** livre da forma selecionada, com indicador visual (anel preto) de qual forma está ativa
+- **Remoção** da forma selecionada via botão dedicado
+- **Limite de canvas**: nenhuma forma pode ser arrastada, redimensionada ou criada além dos limites visíveis do canvas — inclusive ao redimensionar a janela
+- **Detecção de colisão** entre todos os pares de formas presentes na cena, com feedback visual instantâneo (cor de alerta), suportando colisões simultâneas entre 3 ou mais formas
 
 ---
 
-## 🛠️ Stack Tecnológica
+## Stack Tecnológica
 
 | Camada | Tecnologia |
 |---|---|
@@ -41,11 +52,11 @@ A tela principal é dividida em duas regiões:
 | Build | Gradle |
 | IDE de referência | Eclipse (via *Buildship*) |
 
-> ⚠️ **Decisão de arquitetura:** o projeto **não utiliza motores de física** (ex: Box2D). A detecção de colisão é implementada de forma própria na classe utilitária `GeometriaUtils`, preservando o valor didático do polimorfismo via interface `Colidivel`.
+> **Decisão de arquitetura:** o projeto **não utiliza motores de física** (ex: Box2D). A detecção de colisão é implementada de forma própria na classe utilitária `GeometriaUtils`, preservando o valor didático do polimorfismo via interface `Colidivel`.
 
 ---
 
-## 📦 Estrutura do Projeto
+## Estrutura do Projeto
 
 ```
 geomlab-2d-studio/
@@ -58,7 +69,8 @@ geomlab-2d-studio/
 │       ├── ui/
 │       │   └── PainelInspetor.java
 │       └── geometry/
-│           ├── Volume.java          # classe abstrata + estado emColisao
+│           ├── Volume.java          # classe abstrata: render, renderBorda, contemPonto,
+│           │                        # colidirCom, getRaioEnvolvente + estado emColisao/idCriacao
 │           ├── AABB.java
 │           ├── Circulo.java
 │           ├── OBB.java
@@ -74,7 +86,7 @@ geomlab-2d-studio/
 
 ---
 
-## ▶️ Como Executar
+## Como Executar
 
 ### Pré-requisitos
 - JDK 8 ou superior
@@ -93,33 +105,16 @@ geomlab-2d-studio/
 
 ---
 
-## 🗺️ Roadmap de Desenvolvimento
-
-O desenvolvimento é dividido em 6 etapas incrementais, cada uma testável e apresentável isoladamente:
-
-| Etapa | Nome | Status |
-|---|---|---|
-| 1 | Fundação e Esqueleto Visual | ✅ Concluída |
-| 2 | Domínio Geométrico (Volume, AABB, Círculo, OBB) | ✅ Concluída |
-| 3 | Interatividade e Manipulação | ✅ Concluída |
-| 4 | Motor de Colisão (GeometriaUtils + Colidivel) | ✅ Concluída |
-| 5 | Polimento e Persistência | 🔜 Próxima |
-| 6 | Nuvens de Pontos e Encapsulamento Mínimo | ⏳ Planejada (depende das Etapas 3 e 4) |
-
-Detalhes de cada etapa estão documentados em [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
-
----
-
-## 🎯 Conceitos de POO Demonstrados
+## Conceitos de POO Demonstrados
 
 - **Abstração**: classe abstrata `Volume` e interface `Colidivel`
-- **Encapsulamento**: uso correto dos modificadores `+ public`, `# protected`, `- private`; estado de arraste e estado de colisão (`emColisao`) totalmente privados/protegidos
+- **Encapsulamento**: uso correto dos modificadores `+ public`, `# protected`, `- private`; estado de arraste, seleção e colisão (`emColisao`) totalmente privados/protegidos
 - **Herança**: `AABB`, `Circulo` e `OBB` especializando `Volume`
-- **Polimorfismo**: 3 despachos dinâmicos no ciclo de `Cena` — `v.render(renderer)`, `v.renderBorda(renderer)` e `a.colidirCom(b)` — cada um resolvido em tempo de execução conforme o tipo concreto real do objeto
+- **Polimorfismo**: 4 despachos dinâmicos no ciclo de `Cena` — `v.render(renderer)`, `v.renderBorda(renderer)`, `a.colidirCom(b)` e `v.getRaioEnvolvente()` — cada um resolvido em tempo de execução conforme o tipo concreto real do objeto
 - **Relações estruturais**: Composição (`App *-- Cena`), Agregação (`Cena o-- Volume`), Associação (`PainelInspetor --> Cena`) e Dependência (`Volume ..> GeometriaUtils`)
-- **Atributo e método estático**: `GeometriaUtils.EPSILON` (privado) e os 6 métodos de interseção (`intersectaCirculoVsCirculo`, `intersectaAABBvsAABB`, `intersectaAABBvsCirculo`, `intersectaOBBvsOBB`, `intersectaOBBvsAABB`, `intersectaOBBvsCirculo`)
+- **Atributo e método estático**: `GeometriaUtils.EPSILON` (privado) e os 6 métodos de interseção; reforçado também por `Volume.totalCriados`/`getTotalCriados()`, usado como base do `idCriacao` imutável de cada forma
 
-### Destaques do Motor de Colisão (Etapa 4)
+### Destaques do Motor de Colisão
 
 - **6 pares de colisão** implementados cobrindo todas as combinações entre AABB, Círculo e OBB
 - **SAT (Separating Axis Theorem)** para os pares que envolvem rotação (OBB×OBB, OBB×AABB)
@@ -128,12 +123,10 @@ Detalhes de cada etapa estão documentados em [`docs/ARCHITECTURE.md`](docs/ARCH
 
 ---
 
+## Autores
+
+Desenvolvido por **Túlio Vasconcelos** e **Lucas Ferreira** como projeto prático de estudo em Programação Orientada a Objetos.
+
 ## 📄 Licença
 
 Este projeto é distribuído sob a licença MIT — veja o arquivo `LICENSE` para detalhes.
-
----
-
-## ✍️ Autor
-
-Desenvolvido por **Túlio** como projeto prático de estudo em Programação Orientada a Objetos.
