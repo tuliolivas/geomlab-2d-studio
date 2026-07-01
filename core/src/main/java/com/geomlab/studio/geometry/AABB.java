@@ -4,6 +4,8 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 
+//caixa alinhada aos eixos (Axis-Aligned Bounding Box)
+//lados sempre paralelos a X e Y
 public class AABB extends Volume {
 
     private float largura;
@@ -41,31 +43,29 @@ public class AABB extends Volume {
         renderer.rect(getMinX(), getMinY(), largura, altura);
     }
 
+    // teste simples de ponto dentro do retângulo via mín/máx de cada eixo
     @Override
     public boolean contemPonto(Vector2 ponto) {
         return ponto.x >= getMinX() && ponto.x <= getMaxX()
             && ponto.y >= getMinY() && ponto.y <= getMaxY();
     }
-    
+
+    // demanda para GeometriaUtils conforme o tipo real do outro volume
+    @Override
+    public boolean colidirCom(Colidivel outro) {
+        if (outro instanceof AABB)    return GeometriaUtils.intersectaAABBvsAABB(this, (AABB) outro);
+        if (outro instanceof Circulo) return GeometriaUtils.intersectaAABBvsCirculo(this, (Circulo) outro);
+        if (outro instanceof OBB)     return GeometriaUtils.intersectaOBBvsAABB((OBB) outro, this);
+        return false;
+    }
+
+    // o menor círculo que envolve completamente o retângulo
     @Override
     public float getRaioEnvolvente() {
         return (float) Math.sqrt(largura * largura + altura * altura) / 2f;
     }
 
-    @Override
-    public boolean colidirCom(Colidivel outro) {
-        if (outro instanceof AABB) {
-            return GeometriaUtils.intersectaAABBvsAABB(this, (AABB) outro);
-        }
-        if (outro instanceof Circulo) {
-            return GeometriaUtils.intersectaAABBvsCirculo(this, (Circulo) outro);
-        }
-        if (outro instanceof OBB) {
-            return GeometriaUtils.intersectaOBBvsAABB((OBB) outro, this);
-        }
-        return false;
-    }
-
+    // os 4 cantos são usados pelo SAT quando outro volume e um OBB
     public Vector2[] obterVertices() {
         return new Vector2[] {
             new Vector2(getMinX(), getMinY()),
@@ -75,6 +75,7 @@ public class AABB extends Volume {
         };
     }
 
+    // getters de limite centralizados aqui pra não recalcular posicão - largura/2 em varios lugares
     public float getMinX() {
         return posicao.x - largura / 2f;
     }

@@ -4,6 +4,8 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 
+// retângulo orientado (Oriented Bounding Box)
+// igual a AABB, más pode rotacionar
 public class OBB extends Volume {
 
     private float largura;
@@ -50,6 +52,8 @@ public class OBB extends Volume {
         renderer.line(v[3], v[0]);
     }
 
+    // testa se o ponto está dentro da OBB desfazendo a rotação
+    // traz o ponto pro espaco local do retângulo (onde ele "parece" uma AABB) e faz o teste simples de mín/máx
     @Override
     public boolean contemPonto(Vector2 ponto) {
         Vector2 relativo = new Vector2(ponto).sub(posicao);
@@ -59,7 +63,6 @@ public class OBB extends Volume {
     
     @Override
     public float getRaioEnvolvente() {
-        // rotacao nao muda a diagonal, entao a formula e igual a do AABB
         return (float) Math.sqrt(largura * largura + altura * altura) / 2f;
     }
     
@@ -83,6 +86,8 @@ public class OBB extends Volume {
         return false;
     }
 
+    // calcula os 4 cantos do retângulo já rotacionados no espaço do mundo
+    // reutilizado pelo render, pelo SAT e pelo contemPonto
     public Vector2[] obterVertices() {
         float meiaLargura = largura / 2f;
         float meiaAltura = altura / 2f;
@@ -100,7 +105,8 @@ public class OBB extends Volume {
         }
         return locais;
     }
-
+    
+    // os 2 eixos normais as arestas, usados pelo SAT para projetar as sombras
     public Vector2[] obterEixos() {
         Vector2 eixoX = new Vector2(1, 0).rotateDeg(anguloRotacao);
         Vector2 eixoY = new Vector2(0, 1).rotateDeg(anguloRotacao);

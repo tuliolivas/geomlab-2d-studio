@@ -22,6 +22,7 @@ import com.geomlab.studio.ui.PainelInspetor;
 import java.util.ArrayList;
 import java.util.List;
 
+// lista de formas, selecao, arraste, colisao e limites de canvas
 public class Cena {
 
     private Stage stage;

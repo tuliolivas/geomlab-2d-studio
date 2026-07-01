@@ -19,6 +19,8 @@ import com.kotcrab.vis.ui.widget.VisTextField;
 
 import java.util.function.Consumer;
 
+// painel lateral esquerdo (30%) criacao para selecao, edicao e remocao de formas
+// associacao simples: mantem referencia a Cena pra delegar acoes, mas nao a possui
 public class PainelInspetor {
 
     private VisTable raiz;
@@ -26,7 +28,7 @@ public class PainelInspetor {
     private VisLabel totalLabel;
     private VisTable areaPropriedades;
     private Cena cena;
-    private Volume volumeAtual; // forma sendo editada agora, usada pra reposicionar apos mudar tamanho
+    private Volume volumeAtual;
 
     private static final float TAMANHO_MINIMO = 10f;
 
